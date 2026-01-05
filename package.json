@@ -1,0 +1,40 @@
+{
+  "name": "tiktok-chat-viewer",
+  "private": true,
+  "version": "0.0.1",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "vite:build": "vite build",
+    "build:main": "tsup electron/main.ts electron/preload.ts --format cjs --out-dir dist-electron --clean --no-splitting --external electron",
+    "build": "tsc && npm run build:main && vite build && electron-builder",
+    "preview": "vite preview",
+    "electron:dev": "npm run build:main && concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on tcp:5173 && electron .\""
+  },
+  "dependencies": {
+    "clsx": "^2.1.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "framer-motion": "^11.0.8",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^2.2.1",
+    "tiktok-live-connector": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.18",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.5",
+    "wait-on": "^7.2.0"
+  }
+}
