@@ -2,4 +2,4 @@ dist/
 dist-electron/
 node_modules/
 .env
-package-lock.json
+
