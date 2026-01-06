@@ -1,99 +1,163 @@
-import { SettingsPanel } from './components/SettingsPanel';
+import { SettingsPanel, SocketSettings } from './components/SettingsPanel';
 import { ChatViewer } from './components/ChatViewer';
-import { useTikTokLive } from './hooks/useTikTokLive';
-import { Settings2, Circle, Wifi, WifiOff } from 'lucide-react';
-import { useState } from 'react';
+import { useTikTokLive, TikTokMessage } from './hooks/useTikTokLive';
+import { useSocketConnection } from './hooks/useSocketConnection';
+import { Sidebar, Wifi, WifiOff } from 'lucide-react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
-    const { isConnected, roomId, messages, gifts, error, connect, disconnect } = useTikTokLive();
     const [showSettings, setShowSettings] = useState(true);
 
-    return (
-        <div className="h-screen w-screen bg-background text-foreground font-sans flex flex-col overflow-hidden relative selection:bg-tiktok-pink/30">
+    // Socket Settings State
+    const [socketSettings, setSocketSettings] = useState<SocketSettings>({
+        enabled: false,
+        url: 'http://localhost:3000',
+        apiKey: '',
+        roomId: '',
+        filterPrefix: ''
+    });
 
-            {/* Background decorations - Subtle ambient glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-64 bg-tiktok-pink/5 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-1/2 h-64 bg-tiktok-cyan/5 rounded-full blur-[100px] pointer-events-none" />
+    // Socket Connection Hook
+    const { isConnected: isSocketConnected, error: socketError, sendToSocket } = useSocketConnection({
+        url: socketSettings.url,
+        apiKey: socketSettings.apiKey,
+        roomId: socketSettings.roomId,
+        enabled: socketSettings.enabled
+    });
+
+    // Handle new chat messages for forwarding
+    const handleNewChat = useCallback((msg: TikTokMessage) => {
+        // Only forward if enabled and socket is connected
+        if (!socketSettings.enabled || !isSocketConnected) return;
+
+        // Apply Filter Prefix
+        if (socketSettings.filterPrefix && !msg.comment.startsWith(socketSettings.filterPrefix)) {
+            return;
+        }
+
+        // Prepare payload
+        const payload = {
+            uniqueId: msg.uniqueId,
+            nickname: msg.nickname,
+            comment: msg.comment,
+            timestamp: msg.timestamp,
+            profilePictureUrl: msg.profilePictureUrl
+        };
+
+        // Emit event
+        sendToSocket('tiktok-chat', payload);
+
+    }, [socketSettings.enabled, socketSettings.filterPrefix, isSocketConnected, sendToSocket]);
+
+    // TikTok Live Hook (passing the callback)
+    const { isConnected, roomId, messages, gifts, error, connect, disconnect } = useTikTokLive(handleNewChat);
+
+    return (
+        <div className="h-screen w-screen bg-transparent text-foreground font-sans flex flex-col overflow-hidden relative selection:bg-tiktok-pink/30">
+
+            {/* Background decorations */}
+            <div className="absolute top-0 left-0 w-full h-full bg-background/40 pointer-events-none" />
 
             {/* Header - Drag Region */}
-            <header className="h-12 flex items-center justify-between px-4 shrink-0 z-50 app-drag-region bg-gradient-to-b from-background/90 to-transparent backdrop-blur-sm">
-                <div className="flex items-center gap-3 app-no-drag">
-                    <div className={`mt-1 transition-all duration-300 ${isConnected ? 'opacity-100 scale-100' : 'opacity-50 scale-90 grayscale'}`}>
+            <header className="h-12 flex items-center justify-between px-4 pl-24 shrink-0 z-50 app-drag-region border-b border-white/5 bg-background/20 backdrop-blur-md">
+                <div className="flex items-center gap-3 app-no-drag transition-opacity duration-300 hover:opacity-100 opacity-80">
+                    <div className={`transition-all duration-300 ${isConnected ? 'opacity-100 scale-100' : 'opacity-50 scale-90 grayscale'}`}>
                         <div className="relative">
-                            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-tiktok-cyan shadow-[0_0_8px_#00f2ea]' : 'bg-muted-foreground'}`} />
-                            {isConnected && <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-tiktok-cyan animate-ping opacity-75" />}
+                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-tiktok-cyan shadow-[0_0_8px_#00f2ea]' : 'bg-muted-foreground'}`} />
+                            {isConnected && <div className="absolute inset-0 w-2 h-2 rounded-full bg-tiktok-cyan animate-ping opacity-75" />}
                         </div>
                     </div>
-                    <h1 className="font-bold text-sm tracking-wide bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                        TikTok<span className="font-extrabold text-tiktok-pink">Viewer</span>
-                    </h1>
-                    {isConnected && roomId && (
-                        <span className="text-[10px] font-mono text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-                            #{roomId}
-                        </span>
-                    )}
+                    <div className="flex flex-col">
+                        <h1 className="font-semibold text-xs tracking-wide text-foreground/90">
+                            TikTok Viewer
+                        </h1>
+                        {isConnected && roomId && (
+                            <span className="text-[9px] font-medium text-muted-foreground leading-none">
+                                #{roomId}
+                            </span>
+                        )}
+                    </div>
                 </div>
+
+                {/* Socket Status Indicator */}
+                {socketSettings.enabled && (
+                    <div className="flex items-center gap-1.5 app-no-drag px-2 py-1 bg-black/20 rounded-full border border-white/5" title={socketError || (isSocketConnected ? "Socket Connected" : "Connecting...")}>
+                        {isSocketConnected ? <Wifi size={10} className="text-green-400" /> : <WifiOff size={10} className="text-red-400" />}
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                            {isSocketConnected ? 'LIVE' : 'OFFLINE'}
+                        </span>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-2 app-no-drag">
                     <button
                         onClick={() => setShowSettings(!showSettings)}
-                        className={`p-2 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${showSettings
-                                ? 'bg-secondary/10 text-tiktok-cyan shadow-[0_0_10px_rgba(0,242,234,0.1)] border border-tiktok-cyan/20'
-                                : 'hover:bg-white/5 text-muted-foreground border border-transparent'
+                        className={`p-1.5 rounded-md transition-all duration-200 ${showSettings
+                                ? 'bg-white/10 text-white shadow-sm'
+                                : 'hover:bg-white/5 text-muted-foreground'
                             }`}
                     >
-                        <Settings2 size={16} />
+                        <Sidebar size={16} strokeWidth={2} />
                     </button>
                 </div>
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 relative flex flex-col min-h-0 z-0">
-                <ChatViewer messages={messages} gifts={gifts} />
-            </main>
+            <main className="flex-1 relative flex flex-row min-h-0 z-0">
+                <div className="flex-1 flex flex-col min-w-0">
+                    <ChatViewer messages={messages} gifts={gifts} />
+                </div>
 
-            {/* Settings Panel Overlay */}
-            <AnimatePresence>
-                {showSettings && (
-                    <motion.div
-                        initial={{ x: '100%', opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: '100%', opacity: 0 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="absolute inset-y-0 right-0 w-[380px] bg-background/95 backdrop-blur-2xl z-40 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] border-l border-white/5 flex flex-col"
-                    >
-                        <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
-                            <SettingsPanel
-                                onConnect={connect}
-                                onDisconnect={disconnect}
-                                isConnected={isConnected}
-                                error={error}
-                            />
+                {/* Settings Panel Sidebar */}
+                <AnimatePresence>
+                    {showSettings && (
+                        <motion.div
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 320, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            className="h-full border-l border-white/10 bg-background/30 backdrop-blur-xl z-40 flex flex-col overflow-hidden"
+                        >
+                            <div className="w-[320px] h-full flex flex-col">
+                                <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                                    <SettingsPanel
+                                        onConnect={connect}
+                                        onDisconnect={disconnect}
+                                        isConnected={isConnected}
+                                        error={error}
+                                        socketSettings={socketSettings}
+                                        onSocketSettingsChange={setSocketSettings}
+                                    />
 
-                            <div className="mt-8 grid grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 flex flex-col items-center justify-center gap-2">
-                                    <span className="text-3xl font-bold bg-gradient-to-r from-tiktok-cyan to-tiktok-cyan/60 bg-clip-text text-transparent">
-                                        {messages.length}
-                                    </span>
-                                    <span className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Messages</span>
+                                    <div className="mt-8">
+                                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3 px-1">Session Stats</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 group hover:bg-white/10 transition-colors">
+                                                <span className="text-xl font-bold text-foreground">
+                                                    {messages.length}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">Messages</span>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 group hover:bg-white/10 transition-colors">
+                                                <span className="text-xl font-bold text-tiktok-pink">
+                                                    {gifts.length}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">Gifts</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 flex flex-col items-center justify-center gap-2">
-                                    <span className="text-3xl font-bold bg-gradient-to-r from-tiktok-pink to-tiktok-pink/60 bg-clip-text text-transparent">
-                                        {gifts.length}
-                                    </span>
-                                    <span className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Gifts</span>
+
+                                {/* Footer Info */}
+                                <div className="p-3 border-t border-white/5 bg-black/10 text-[10px] text-center text-muted-foreground/40 font-mono">
+                                    v1.0.0 • {isSocketConnected ? 'Socket Active' : 'Socket Idle'}
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Footer Info */}
-                        <div className="p-4 border-t border-white/5 text-[10px] text-center text-muted-foreground/40 font-mono">
-                            TIKTOK LIVE VIEWER v1.0.0
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </main>
         </div>
     )
 }

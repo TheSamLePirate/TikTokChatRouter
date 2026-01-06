@@ -62,7 +62,7 @@ ipcMain.handle('tiktok-connect', async (_event, username: string) => {
 
         // Forward events to renderer
         tiktokConnection.on('chat', (data) => {
-            console.log(data);
+            //console.log(data);
             mainWindow?.webContents.send('tiktok-chat', data);
         });
 

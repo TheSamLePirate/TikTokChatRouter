@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export type TikTokMessage = {
     id: string;
@@ -22,12 +22,18 @@ export type TikTokGift = {
     timestamp: number;
 };
 
-export const useTikTokLive = () => {
+export const useTikTokLive = (onNewChat?: (msg: TikTokMessage) => void) => {
     const [isConnected, setIsConnected] = useState(false);
     const [roomId, setRoomId] = useState<string | null>(null);
     const [messages, setMessages] = useState<TikTokMessage[]>([]);
     const [gifts, setGifts] = useState<TikTokGift[]>([]);
     const [error, setError] = useState<string | null>(null);
+
+    // Use ref to keep callback current without re-binding listeners
+    const onNewChatRef = useRef(onNewChat);
+    useEffect(() => {
+        onNewChatRef.current = onNewChat;
+    }, [onNewChat]);
 
     const connect = useCallback(async (username: string) => {
         setError(null);
@@ -54,26 +60,32 @@ export const useTikTokLive = () => {
 
     useEffect(() => {
         const cleanupChat = window.tiktok.onChat((data) => {
+            const newMessage: TikTokMessage = {
+                id: data.msgId,
+                uniqueId: data.uniqueId,
+                userId: data.userId,
+                comment: data.comment,
+                nickname: data.nickname,
+                profilePictureUrl: data.profilePictureUrl,
+                timestamp: Date.now(),
+            };
+
             setMessages((prev) => {
-                const newMessage: TikTokMessage = {
-                    id: data.msgId,
-                    uniqueId: data.uniqueId,
-                    userId: data.userId,
-                    comment: data.comment,
-                    nickname: data.nickname,
-                    profilePictureUrl: data.profilePictureUrl,
-                    timestamp: Date.now(),
-                };
                 // Keep last 100 messages
                 return [...prev.slice(-99), newMessage];
             });
+
+            // Trigger callback if processing new message
+            if (onNewChatRef.current) {
+                onNewChatRef.current(newMessage);
+            }
         });
 
         const cleanupGift = window.tiktok.onGift((data) => {
             console.log('Gift received', data);
             setGifts((prev) => {
                 const newGift: TikTokGift = {
-                    id: data.msgId, // or logic to generate unique id
+                    id: data.msgId,
                     uniqueId: data.uniqueId,
                     userId: data.userId,
                     giftId: data.giftId,

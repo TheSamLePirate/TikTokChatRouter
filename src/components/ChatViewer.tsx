@@ -20,68 +20,66 @@ export function ChatViewer({ messages, gifts }: ChatViewerProps) {
     }, [messages, gifts]);
 
     return (
-        <div className="flex-1 w-full relative overflow-hidden bg-transparent flex flex-col font-sans">
+        <div className="flex-1 w-full h-full relative overflow-hidden bg-transparent flex flex-col font-sans">
             {/* Top gradient mask for smooth fade-in */}
-            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 left-0 w-full h-12 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar pb-20">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 custom-scrollbar pb-20">
                 <AnimatePresence initial={false} mode="popLayout">
                     {allEvents.map((event) => (
                         <motion.div
                             key={`${event.id}-${event.timestamp}`}
                             layout
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
-                            className={`relative flex gap-3 group max-w-[95%] ${event.type === 'gift' ? 'self-center mx-auto' : ''}`}
+                            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                            transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
+                            className={`relative flex gap-3 group max-w-[90%] ${event.type === 'gift' ? 'self-center mx-auto' : ''}`}
                         >
                             {/* Avatar */}
                             <div className={`shrink-0 relative ${event.type === 'gift' ? 'order-2' : 'order-1'}`}>
                                 <div className={`relative rounded-full p-[2px] ${event.type === 'gift'
                                     ? 'bg-gradient-to-tr from-tiktok-cyan to-tiktok-pink animate-spin-slow'
-                                    : 'bg-gradient-to-tr from-white/20 to-white/5'}`}>
+                                    : 'bg-gradient-to-tr from-white/10 to-transparent'}`}>
                                     {event.profilePictureUrl ? (
                                         <img
                                             src={event.profilePictureUrl}
                                             alt={event.nickname}
-                                            className="w-10 h-10 rounded-full object-cover border-2 border-background/90"
+                                            className="w-9 h-9 rounded-full object-cover border border-white/5 shadow-sm"
                                         />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold border-2 border-background/90">
-                                            {event.nickname?.charAt(0) || '?'}
+                                        <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold border border-white/5 text-muted-foreground">
+                                            {event.nickname?.charAt(0) || event.uniqueId?.charAt(0) || '?'}
                                         </div>
                                     )}
-                                    {/* Online/Active indicator dot */}
-                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full shadow-sm" />
                                 </div>
                             </div>
 
                             {/* Message Bubble */}
                             <div className={`flex flex-col min-w-0 ${event.type === 'gift' ? 'order-1 items-end' : 'order-2 items-start'}`}>
-                                <div className="flex items-center gap-2 mb-1 opacity-80 pl-1">
-                                    <span className={`text-xs font-bold ${event.type === 'gift'
+                                <div className="flex items-baseline gap-2 mb-1 pl-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                                    <span className={`text-[11px] font-bold tracking-tight ${event.type === 'gift'
                                         ? 'bg-gradient-to-r from-tiktok-cyan to-tiktok-pink bg-clip-text text-transparent'
-                                        : 'text-foreground/70'}`}>
-                                        {event.nickname}
+                                        : 'text-foreground/60'}`}>
+                                        {event.nickname.length < 2 ? event.uniqueId : event.nickname}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                    <span className="text-[9px] text-muted-foreground/50">
                                         {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
 
-                                <div className={`relative px-4 py-2.5 rounded-2xl backdrop-blur-md border shadow-sm transition-all duration-300
+                                <div className={`relative px-4 py-2 rounded-2xl backdrop-blur-md border shadow-sm transition-all duration-300
                                     ${event.type === 'gift'
-                                        ? 'bg-gradient-to-r from-purple-900/60 to-tiktok-pink/30 border-tiktok-pink/40 text-white rounded-tr-none'
-                                        : 'bg-card/60 hover:bg-card/80 border-white/5 text-foreground/90 rounded-tl-none'}`}
+                                        ? 'bg-gradient-to-r from-purple-900/60 to-tiktok-pink/20 border-tiktok-pink/30 text-white rounded-tr-sm'
+                                        : 'bg-white/5 hover:bg-white/10 border-white/5 text-foreground/90 rounded-tl-sm'}`}
                                 >
                                     {event.type === 'gift' && (
-                                        <div className="flex items-center gap-2 mb-1 text-tiktok-pink font-bold text-xs uppercase tracking-widest">
-                                            <Gift size={14} className="animate-bounce" /> Gift
+                                        <div className="flex items-center gap-2 mb-0.5 text-tiktok-pink font-bold text-[10px] uppercase tracking-widest">
+                                            <Gift size={12} className="animate-bounce" /> Gift Received
                                         </div>
                                     )}
                                     <p className={`text-sm leading-relaxed break-words font-medium ${event.type === 'gift' ? 'text-lg text-white drop-shadow-md' : ''}`}>
-                                        {event.comment} <span className="text-secondary/80 font-bold">{event.type === 'gift' && `(x${event.diamondCount})`}</span>
+                                        {event.comment} <span className="text-tiktok-cyan font-bold ml-1">{event.type === 'gift' && `x${event.diamondCount}`}</span>
                                     </p>
                                 </div>
                             </div>
@@ -92,7 +90,7 @@ export function ChatViewer({ messages, gifts }: ChatViewerProps) {
             </div>
 
             {/* Bottom gradient mask */}
-            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-background via-background/90 to-transparent z-10 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
         </div>
     );
 }
