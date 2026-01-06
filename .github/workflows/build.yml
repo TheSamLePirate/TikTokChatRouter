@@ -35,7 +35,7 @@ jobs:
         # This runs the build script in package.json: "tsc && npm run build:main && vite build && electron-builder"
         # Since we are on Windows in CI, electron-builder will default to Windows targets or use the ones defined in json.
         # However, specifically forcing win target ensures intent.
-        run: npm run build -- --win
+        run: npm run build -- --win --publish never
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
