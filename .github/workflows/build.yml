@@ -26,7 +26,10 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 600000
+          npm ci
 
       - name: Build Code
         # This runs the build script in package.json: "tsc && npm run build:main && vite build && electron-builder"
