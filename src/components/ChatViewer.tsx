@@ -8,11 +8,18 @@ interface ChatViewerProps {
     gifts: TikTokGift[];
 }
 
+
+type ChatEvent =
+    | (TikTokMessage & { type: 'chat' })
+    | (TikTokGift & { type: 'gift'; comment: string });
+
 export function ChatViewer({ messages, gifts }: ChatViewerProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    const allEvents = [...messages.map(m => ({ ...m, type: 'chat' })), ...gifts.map(g => ({ ...g, type: 'gift', comment: `Sent ${g.giftName}` }))]
-        .sort((a, b) => a.timestamp - b.timestamp);
+    const allEvents: ChatEvent[] = [
+        ...messages.map(m => ({ ...m, type: 'chat' } as const)),
+        ...gifts.map(g => ({ ...g, type: 'gift', comment: `Sent ${g.giftName}` } as const))
+    ].sort((a, b) => a.timestamp - b.timestamp);
 
     useEffect(() => {
         // Only scroll if we are near the bottom or on new messages

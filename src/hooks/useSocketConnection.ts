@@ -32,7 +32,7 @@ export const useSocketConnection = ({ url, apiKey, roomId, enabled }: UseSocketC
 
         // Avoid reconnecting if params haven't changed meaningfully (handled by react dep array)
         // Check if we already have a socket connection to the same URL
-        if (socketRef.current?.connected && socketRef.current.io.uri === url) {
+        if (socketRef.current?.connected && (socketRef.current.io as any).uri === url) {
             // If just roomId changed, we handle that separately? 
             // Ideally we re-handshake if auth changes, but user ID is static for now.
         }
